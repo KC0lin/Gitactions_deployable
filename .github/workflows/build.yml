@@ -1,58 +1,96 @@
-name: CI/CD Pipeline - WordPress CodeDeploy
+name: CI/CD WordPress Deploy to AWS CodeDeploy
 
 on:
   push:
     branches: [ main, staging ]
-  workflow_dispatch: # Permite ejecución manual
+  workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1 # ¡IMPORTANTE! Reemplaza si tu región no es Ohio
-  S3_BUCKET_NAME: s3-colin-gitact # ¡IMPORTANTE! Tu nombre del bucket de artefactos
-  CD_APP_NAME: vinte-pruebabelmonte # Nombre de la aplicación CodeDeploy
-
+  AWS_REGION: us-east-1 # Tu región
+  S3_BUCKET_NAME: s3-colin-gitact # Tu nombre del bucket de artefactos
+  CD_APP_NAME: vinte-pruebabelmonte # Tu nombre de la aplicación CodeDeploy
+  
 jobs:
-  deploy:
+  # ----------------------------------------------------
+  # 1. VALIDACIÓN (Comprueba que el código PHP es válido)
+  # ----------------------------------------------------
+  validate:
+    name: Validate PHP Syntax
     runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-
-    # 1. Autenticación con AWS (Usando Secrets)
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    # 2. Empaquetar y Subir Artefacto a S3
-    - name: ZIP and Upload to S3
-      id: upload
-      run: |
-        ARTIFACT_NAME=app-${{ github.sha }}.zip
-        # Comprime todo el contenido del repositorio (incluyendo appspec.yml y scripts/)
-        git archive --format=zip --output=$ARTIFACT_NAME HEAD
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
         
-        # Sube el artefacto al bucket S3
-        aws s3 cp $ARTIFACT_NAME s3://${{ env.S3_BUCKET_NAME }}/$ARTIFACT_NAME
-        
-        # Exporta el nombre del artefacto para el siguiente paso
-        echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+      - name: 🔍 Check PHP syntax
+        # Ejecuta el chequeo de sintaxis; si hay errores, el job falla.
+        run: |
+          find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+          echo "✅ Validation completed"
 
-    # 3. Despliegue a STAGING (Si se hace push a la rama staging)
-    - name: Initiate STAGING Deployment
-      if: github.ref == 'refs/heads/staging'
-      run: |
-        aws deploy create-deployment \
-          --application-name ${{ env.CD_APP_NAME }} \
-          --deployment-group-name Stage-Deployment-Group \
-          --s3-location bucket=${{ env.S3_BUCKET_NAME }},key=${{ steps.upload.outputs.ARTIFACT_NAME }},bundleType=zip
+  # ----------------------------------------------------
+  # 2. DESPLIEGUE (Sube y llama a CodeDeploy)
+  # ----------------------------------------------------
+  deploy:
+    name: Deploy to ${{ github.ref_name == 'staging' && 'STAGING' || 'PRODUCTION' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    
+    # Variables de ambiente específicas para el job
+    env:
+      DEPLOYMENT_GROUP: ${{ github.ref_name == 'staging' && 'Stage-Deployment-Group' || 'Prod-Deployment-Group' }}
+      S3_KEY_PREFIX: ${{ github.ref_name == 'staging' && 'staging' || 'production' }}
+      
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      # 🛠 Instalar la utilidad ZIP (USANDO YUM/DNF para Amazon Linux)
+      - name: 🛠 Install ZIP utility
+        run: sudo yum update -y && sudo yum install -y zip
+        
+      # 1. Autenticación con AWS
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 2. Empaquetar y Excluir (Corregido para error 127)
+      - name: 📦 Create deployment package
+        id: package
+        run: |
+          PACKAGE_NAME="${{ env.S3_KEY_PREFIX }}/deployment-${{ github.sha }}.zip"
           
-    # 4. Despliegue a PRODUCCIÓN (Si se hace push a la rama main)
-    - name: Initiate PRODUCTION Deployment
-      if: github.ref == 'refs/heads/main'
-      run: |
-        aws deploy create-deployment \
-          --application-name ${{ env.CD_APP_NAME }} \
-          --deployment-group-name Prod-Deployment-Group \
-          --s3-location bucket=${{ env.S3_BUCKET_NAME }},key=${{ steps.upload.outputs.ARTIFACT_NAME }},bundleType=zip
+          # COMANDO ZIP EN UNA SOLA LÍNEA LÓGICA
+          zip -r deployment.zip . -x '*.git*' -x 'node_modules/*' -x '.github/*' -x '*.md'
+          
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "✅ Package created"
+
+      # 3. Subir a S3
+      - name: ☁️ Upload to S3
+        run: |
+          aws s3 cp deployment.zip s3://${{ env.S3_BUCKET_NAME }}/${{ steps.package.outputs.PACKAGE_NAME }}
+          echo "✅ Upload completed"
+
+      # 4. Iniciar Despliegue con CodeDeploy (Espera la finalización)
+      - name: 🚀 Initiate CodeDeploy Deployment and Wait
+        id: deploy
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name ${{ env.CD_APP_NAME }} \
+            --deployment-group-name ${{ env.DEPLOYMENT_GROUP }} \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --s3-location bucket=${{ env.S3_BUCKET_NAME }},key=${{ steps.package.outputs.PACKAGE_NAME }},bundleType=zip \
+            --description "Deployment for commit ${{ github.sha }}" \
+            --query 'deploymentId' \
+            --output text)
+            
+          echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+          echo "✅ Deployment created: $DEPLOYMENT_ID"
+
+          # Espera a que el despliegue finalice (esto mantiene el workflow abierto)
+          aws deploy wait deployment-successful --deployment-id $DEPLOYMENT_ID
+          echo "🎉 Deployment successful!"
