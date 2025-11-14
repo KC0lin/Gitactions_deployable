@@ -1,0 +1,32 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /var/www/html/ 
+    # Todo el contenido de tu repositorio (incluyendo la carpeta 'wordpress/', 'scripts/', etc.) 
+    # se copiará a /var/www/html/
+permissions:
+  - object: /var/www/html/
+    pattern: "**"
+    owner: ec2-user # Ajusta al usuario de tu servidor web (ej. 'www-data' o 'ec2-user')
+    group: ec2-user
+    type:
+      - file
+      - directory
+hooks:
+  BeforeInstall:
+    - location: scripts/BeforeInstall.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: scripts/AfterInstall.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: scripts/ApplicationStart.sh
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: scripts/ValidateService.sh
+      timeout: 300
+      runas: root
