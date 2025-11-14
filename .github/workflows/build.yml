@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: us-east-2 # ¡IMPORTANTE! Reemplaza si tu región no es Ohio
   S3_BUCKET_NAME: s3-colin-gitact # ¡IMPORTANTE! Tu nombre del bucket de artefactos
-  CD_APP_NAME: WordPress-Application # Nombre de la aplicación CodeDeploy
+  CD_APP_NAME: vinte-pruebabelmonte # Nombre de la aplicación CodeDeploy
 
 jobs:
   deploy:
