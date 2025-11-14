@@ -21,6 +21,12 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      - name: 🛠 Install ZIP utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip
+      # -------------------------------
+
   # ----------------------------------------------------
   # JOB 2: DESPLIEGUE (Depende de que 'validate' sea exitoso)
   # ----------------------------------------------------
