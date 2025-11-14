@@ -3,15 +3,16 @@ name: CI/CD WordPress Deploy to AWS CodeDeploy
 on:
   push:
     branches: [ main, staging ]
+  workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1
-  S3_BUCKET_NAME: s3-colin-gitact
+  AWS_REGION: us-east-1 # Tu región
+  S3_BUCKET_NAME: s3-colin-gitact # Tu nombre del bucket de artefactos
   CD_APP_NAME: vinte-pruebabelmonte # Tu nombre de la aplicación CodeDeploy
   
 jobs:
   # ----------------------------------------------------
-  # JOB 1: VALIDACIÓN (Se ejecuta siempre que haya un push)
+  # 1. VALIDACIÓN (Comprueba que el código PHP es válido)
   # ----------------------------------------------------
   validate:
     name: Validate PHP Syntax
@@ -20,22 +21,18 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-
-      - name: 🛠 Install ZIP utility
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zip
-      # -------------------------------
+        
+     
 
   # ----------------------------------------------------
-  # JOB 2: DESPLIEGUE (Depende de que 'validate' sea exitoso)
+  # 2. DESPLIEGUE (Sube y llama a CodeDeploy)
   # ----------------------------------------------------
   deploy:
     name: Deploy to ${{ github.ref_name == 'staging' && 'STAGING' || 'PRODUCTION' }}
-    needs: validate # Depende del job de validación
+    needs: validate
     runs-on: ubuntu-latest
     
-    # Define variables de ambiente específicas del ambiente
+    # Variables de ambiente específicas para el job
     env:
       DEPLOYMENT_GROUP: ${{ github.ref_name == 'staging' && 'Stage-Deployment-Group' || 'Prod-Deployment-Group' }}
       S3_KEY_PREFIX: ${{ github.ref_name == 'staging' && 'staging' || 'production' }}
@@ -44,7 +41,7 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         
-      # 1. Autenticación con AWS (Usando Secrets)
+      # 1. Autenticación con AWS
       - name: 🔐 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -52,19 +49,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 2. Empaquetar y Excluir Archivos Innecesarios
+      # 2. Empaquetar y Excluir (Corregido para error 127)
       - name: 📦 Create deployment package
         id: package
         run: |
           PACKAGE_NAME="${{ env.S3_KEY_PREFIX }}/deployment-${{ github.sha }}.zip"
           
-          # Zip, excluyendo archivos de control de versiones y caché
-          zip -r deployment.zip . \
-            -x "*.git*" \
-            -x "node_modules/*" \
-            -x ".github/*" \
-            -x "*.md"
-            
+          # COMANDO ZIP EN UNA SOLA LÍNEA LÓGICA
+          zip -r deployment.zip . -x '*.git*' -x 'node_modules/*' -x '.github/*' -x '*.md'
+          
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "✅ Package created"
 
@@ -74,8 +67,8 @@ jobs:
           aws s3 cp deployment.zip s3://${{ env.S3_BUCKET_NAME }}/${{ steps.package.outputs.PACKAGE_NAME }}
           echo "✅ Upload completed"
 
-      # 4. Iniciar Despliegue con CodeDeploy
-      - name: 🚀 Deploy with CodeDeploy
+      # 4. Iniciar Despliegue con CodeDeploy (Espera la finalización)
+      - name: 🚀 Initiate CodeDeploy Deployment and Wait
         id: deploy
         run: |
           DEPLOYMENT_ID=$(aws deploy create-deployment \
@@ -83,17 +76,13 @@ jobs:
             --deployment-group-name ${{ env.DEPLOYMENT_GROUP }} \
             --deployment-config-name CodeDeployDefault.OneAtATime \
             --s3-location bucket=${{ env.S3_BUCKET_NAME }},key=${{ steps.package.outputs.PACKAGE_NAME }},bundleType=zip \
-            --description "${{ env.DEPLOYMENT_GROUP }} deployment for commit ${{ github.sha }}" \
-            --file-exists-behavior OVERWRITE \
+            --description "Deployment for commit ${{ github.sha }}" \
             --query 'deploymentId' \
             --output text)
             
           echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
           echo "✅ Deployment created: $DEPLOYMENT_ID"
 
-      # 5. Esperar a que CodeDeploy finalice (Wait-Action)
-      - name: ⏳ Wait for deployment success
-        run: |
-          aws deploy wait deployment-successful \
-            --deployment-id ${{ steps.deploy.outputs.deployment_id }}
-          echo "🎉 Deployment ${{ steps.deploy.outputs.deployment_id }} successful!"
+          # Espera a que el despliegue finalice (esto mantiene el workflow abierto)
+          aws deploy wait deployment-successful --deployment-id $DEPLOYMENT_ID
+          echo "🎉 Deployment successful!"
