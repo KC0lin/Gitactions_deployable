@@ -1,0 +1,58 @@
+name: CI/CD Pipeline - WordPress CodeDeploy
+
+on:
+  push:
+    branches: [ main, staging ]
+  workflow_dispatch: # Permite ejecución manual
+
+env:
+  AWS_REGION: us-east-2 # ¡IMPORTANTE! Reemplaza si tu región no es Ohio
+  S3_BUCKET_NAME: s3-colin-gitact # ¡IMPORTANTE! Tu nombre del bucket de artefactos
+  CD_APP_NAME: WordPress-Application # Nombre de la aplicación CodeDeploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 1. Autenticación con AWS (Usando Secrets)
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    # 2. Empaquetar y Subir Artefacto a S3
+    - name: ZIP and Upload to S3
+      id: upload
+      run: |
+        ARTIFACT_NAME=app-${{ github.sha }}.zip
+        # Comprime todo el contenido del repositorio (incluyendo appspec.yml y scripts/)
+        git archive --format=zip --output=$ARTIFACT_NAME HEAD
+        
+        # Sube el artefacto al bucket S3
+        aws s3 cp $ARTIFACT_NAME s3://${{ env.S3_BUCKET_NAME }}/$ARTIFACT_NAME
+        
+        # Exporta el nombre del artefacto para el siguiente paso
+        echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+    # 3. Despliegue a STAGING (Si se hace push a la rama staging)
+    - name: Initiate STAGING Deployment
+      if: github.ref == 'refs/heads/staging'
+      run: |
+        aws deploy create-deployment \
+          --application-name ${{ env.CD_APP_NAME }} \
+          --deployment-group-name Stage-Deployment-Group \
+          --s3-location bucket=${{ env.S3_BUCKET_NAME }},key=${{ steps.upload.outputs.ARTIFACT_NAME }},bundleType=zip
+          
+    # 4. Despliegue a PRODUCCIÓN (Si se hace push a la rama main)
+    - name: Initiate PRODUCTION Deployment
+      if: github.ref == 'refs/heads/main'
+      run: |
+        aws deploy create-deployment \
+          --application-name ${{ env.CD_APP_NAME }} \
+          --deployment-group-name Prod-Deployment-Group \
+          --s3-location bucket=${{ env.S3_BUCKET_NAME }},key=${{ steps.upload.outputs.ARTIFACT_NAME }},bundleType=zip
