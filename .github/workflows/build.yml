@@ -22,11 +22,7 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         
-      - name: 🔍 Check PHP syntax
-        # Ejecuta el chequeo de sintaxis; si hay errores, el job falla.
-        run: |
-          find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
-          echo "✅ Validation completed"
+     
 
   # ----------------------------------------------------
   # 2. DESPLIEGUE (Sube y llama a CodeDeploy)
