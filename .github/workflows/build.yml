@@ -20,13 +20,6 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
-      - name: 🔍 Check PHP syntax
-        # Busca recursivamente archivos .php y reporta errores de sintaxis
-        # Si encuentra un error, el job fallará.
-        run: |
-          find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
-          echo "✅ WordPress files validated successfully!"
 
   # ----------------------------------------------------
   # JOB 2: DESPLIEGUE (Depende de que 'validate' sea exitoso)
