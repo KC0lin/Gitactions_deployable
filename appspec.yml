@@ -3,6 +3,9 @@ os: linux
 files:
   - source: /wordpress/
     destination: /var/www/html/ 
+- source: /wordpress/.db_credentials
+    destination: /var/www/html/.db_credentials
+    
     # Todo el contenido de tu repositorio (incluyendo la carpeta 'wordpress/', 'scripts/', etc.) 
     # se copiará a /var/www/html/
 permissions:
