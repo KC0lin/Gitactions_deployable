@@ -3,7 +3,7 @@ APP_DIR="/var/www/html"
 # El usuario de Apache en Amazon Linux es 'apache'
 WEB_USER="apache" 
 WEB_GROUP="apache" 
-TEMP_SECRETS_FILE="$APP_DIR/db_credentials.txt" # El archivo inyectado por GitHub Actions
+TEMP_SECRETS_FILE="$APP_DIR/.db_credentials" # El archivo inyectado por GitHub Actions
 FINAL_SECRETS_FILE="/tmp/db_secrets.txt"     # El archivo que lee index.php/wp-config
 
 echo "AfterInstall iniciado: Configurando permisos y credenciales."
