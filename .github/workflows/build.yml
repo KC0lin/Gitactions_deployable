@@ -11,7 +11,7 @@ env:
   
 jobs:
   # ----------------------------------------------------
-  # JOB 1: VALIDACIÓN (Se ejecuta siempre que haya un push)
+  # JOB 1: VALIDACIÓN (Se ejecuta siempre que haya un push) ok
   # ----------------------------------------------------
   validate:
     name: Validate PHP Syntax
