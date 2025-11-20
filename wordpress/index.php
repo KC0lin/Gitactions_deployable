@@ -73,13 +73,14 @@ $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
         <h2>2. Prueba de Conexión a MySQL</h2>
 
         <?php
-        if (isset($db_config['error'])) {
-            echo '<div class="status error">❌ ERROR: No se pudieron cargar las credenciales.</div>';
-            echo '<p>' . htmlspecialchars($db_config['error']) . '</p>';
-        } else {
-            // Intentar la conexión
-            // Utilizamos los valores trim() para la conexión
-            $mysqli = new mysqli($host, $user, $pass, $name);
+        // 🚨 CORRECCIÓN: Usar la existencia de la clave 'error' para detener la conexión
+        if (isset($db_config['error'])) {
+            echo '<div class="status error">❌ ERROR: No se pudieron cargar las credenciales.</div>';
+            echo '<p>' . htmlspecialchars($db_config['error']) . '</p>';
+        } else {
+            // Intentar la conexión SÓLO si las credenciales se cargaron.
+            // Utilizamos los valores trim() para la conexión
+            $mysqli = new mysqli($host, $user, $pass, $name);
 
             if ($mysqli->connect_errno) {
                 echo '<div class="status error">❌ CONEXIÓN FALLIDA</div>';
