@@ -70,7 +70,7 @@ jobs:
     # Creamos el archivo DENTRO de la carpeta 'wordpress/' para que CodeDeploy lo recoja.
         run: |
            mkdir -p wordpress # Asegura que la carpeta existe
-           CREDENTIALS_FILE="wordpress/db_credentials.txt" # Define la ruta DENTRO de 'wordpress/'
+           CREDENTIALS_FILE="wordpress/.db_credentials" # Define la ruta DENTRO de 'wordpress/'
            # 🚨 CORRECCIÓN CLAVE: Usamos $CREDENTIALS_FILE en cada línea de 'echo'
            echo "DB_NAME=${{ env.DB_NAME }}" >> $CREDENTIALS_FILE
            echo "DB_HOST=${{ env.DB_HOST }}" >> $CREDENTIALS_FILE
