@@ -36,7 +36,7 @@ if [ -f "$TEMP_SECRETS_FILE" ]; then
 
     # 2. Configuración de wp-config.php (SI EXISTE)
     # Se asume que el archivo a modificar se llama wp-config.php y se encuentra en /var/www/html/wordpress/
-    WP_CONFIG_PATH="$APP_DIR/wordpress/wp-config.php" 
+    WP_CONFIG_PATH="$APP_DIR/wp-config.php" 
     
     # NOTA: Debes asegurarte de que tu wp-config.php tenga estas líneas con placeholders.
     if [ -f "$WP_CONFIG_PATH" ]; then
