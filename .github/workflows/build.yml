@@ -44,7 +44,15 @@ jobs:
     env:
       DEPLOYMENT_GROUP: ${{ github.ref_name == 'staging' && 'Stage-Deployment-Group' || 'Prod-Deployment-Group' }}
       S3_KEY_PREFIX: ${{ github.ref_name == 'staging' && 'staging' || 'production' }}
-      
+
+      # --- Credenciales de Base de Datos (Mapeo condicional desde Secrets) ---
+      # Si la rama es 'staging', usa los secrets STAG; si es 'main', usa PROD.
+      DB_NAME: ${{ github.ref_name == 'staging' && secrets.DB_STAG_NAME || secrets.DB_PROD_NAME }}
+      DB_HOST: ${{ github.ref_name == 'staging' && secrets.DB_STAG_HOST || secrets.DB_PROD_HOST }}
+      DB_USER: ${{ github.ref_name == 'staging' && secrets.DB_STAG_USER || secrets.DB_PROD_USER }}
+      DB_PASS: ${{ github.ref_name == 'staging' && secrets.DB_STAG_PASS || secrets.DB_PROD_PASS }}
+    
+    
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -57,7 +65,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 2. Empaquetar y Excluir (Corregido para error 127)
+      #2. 
+      - name: 🔒 Inject DB Credentials into Deployment Package
+       # Creamos un archivo temporal que CodeDeploy copiará a /var/www/html/
+       # Este archivo será leído y ELIMINADO en el hook AfterInstall.
+        run: |
+          echo "DB_NAME=${{ env.DB_NAME }}" >> .db_credentials
+          echo "DB_HOST=${{ env.DB_HOST }}" >> .db_credentials
+          echo "DB_USER=${{ env.DB_USER }}" >> .db_credentials
+          echo "DB_PASS=${{ env.DB_PASS }}" >> .db_credentials
+          echo "Injected credentials for ${{ github.ref_name }}."
+      
+      # 3. Empaquetar y Excluir (Corregido para error 127)
       - name: 📦 Create deployment package
         id: package
         run: |
@@ -69,13 +88,13 @@ jobs:
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "✅ Package created"
 
-      # 3. Subir a S3
+      # 4. Subir a S3
       - name: ☁️ Upload to S3
         run: |
           aws s3 cp deployment.zip s3://${{ env.S3_BUCKET_NAME }}/${{ steps.package.outputs.PACKAGE_NAME }}
           echo "✅ Upload completed"
 
-      # 4. Iniciar Despliegue con CodeDeploy (Espera la finalización)
+      # 5. Iniciar Despliegue con CodeDeploy (Espera la finalización)
       - name: 🚀 Initiate CodeDeploy Deployment and Wait
         id: deploy
         run: |
