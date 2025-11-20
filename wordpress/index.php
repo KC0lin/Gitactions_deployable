@@ -1,38 +1,3 @@
-<?php
-// ----------------------------------------------------
-// Archivo de Prueba de Conexión a la Base de Datos
-// (Debe ser incluido en la carpeta 'wordpress/' del repositorio)
-// ----------------------------------------------------
-
-// Ruta del archivo de secretos generado en el hook before_install.sh
-$secrets_file = '/tmp/db_secrets.txt';
-$db_config = [];
-
-// Función para parsear el archivo de secretos
-function parse_secrets($file) {
-    if (!file_exists($file) || !is_readable($file)) {
-        return ['error' => 'No se encontró el archivo de secretos o no se puede leer.'];
-    }
-
-    $lines = file($file, FILE_IGNORE_EMPTY_LINES | FILE_SKIP_EMPTY_LINES);
-    $config = [];
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue; // Ignorar comentarios
-        list($key, $value) = explode('=', $line, 2);
-        // 🚨 TRIM aplicado al valor para limpiar saltos de línea y espacios
-        $config[trim($key)] = trim($value); 
-    }
-    return $config;
-}
-
-$db_config = parse_secrets($secrets_file);
-// 🚨 TRIM aplicado de nuevo por seguridad
-$host = trim($db_config['DB_HOST'] ?? 'HOST_NO_ENCONTRADO');
-$user = trim($db_config['DB_USER'] ?? 'USER_NO_ENCONTRADO');
-$pass = trim($db_config['DB_PASSWORD'] ?? 'PASS_NO_ENCONTRADO');
-$name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
-
-?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -71,6 +36,7 @@ $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
             echo '<p>' . htmlspecialchars($db_config['error']) . '</p>';
         } else {
             // Intentar la conexión
+            // Utilizamos los valores trim() para la conexión
             $mysqli = new mysqli($host, $user, $pass, $name);
 
             if ($mysqli->connect_errno) {
