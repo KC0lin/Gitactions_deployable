@@ -3,8 +3,10 @@ APP_DIR="/var/www/html"
 # El usuario de Apache en Amazon Linux es 'apache'
 WEB_USER="apache" 
 WEB_GROUP="apache" 
-TEMP_SECRETS_FILE="$APP_DIR/.db_credentials" # El archivo inyectado por GitHub Actions
-FINAL_SECRETS_FILE="/tmp/db_secrets.txt"     # El archivo que lee index.php/wp-config
+TEMP_SECRETS_FILE="$APP_DIR/.db_credentials" 
+# 🚨 UBICACIÓN FINAL SEGURA: Directorio dedicado fuera de la webroot
+FINAL_SECRETS_DIR="/var/www/db_config"
+FINAL_SECRETS_FILE="$FINAL_SECRETS_DIR/db_secrets.txt" 
 
 echo "AfterInstall iniciado: Configurando permisos y credenciales."
 
@@ -12,6 +14,13 @@ echo "AfterInstall iniciado: Configurando permisos y credenciales."
 echo "--- DEBUG: Contenido de $APP_DIR antes de la configuración ---"
 ls -la $APP_DIR
 echo "---------------------------------------------------------"
+
+# 0. CONFIGURACIÓN DE LA UBICACIÓN FINAL (CRÍTICO para SELinux/AppArmor)
+echo "Creando directorio seguro para credenciales: $FINAL_SECRETS_DIR"
+sudo mkdir -p "$FINAL_SECRETS_DIR"
+sudo chown $WEB_USER:$WEB_GROUP "$FINAL_SECRETS_DIR"
+sudo chmod 700 "$FINAL_SECRETS_DIR" # Solo el propietario (apache) puede entrar
+
 
 # 1. Cargar las credenciales inyectadas por el CI/CD
 echo "Cargando credenciales inyectadas desde el CI/CD..."
