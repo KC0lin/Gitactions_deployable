@@ -1,5 +1,5 @@
 <?php
-// Muestra información clave del servidor para verificar el entorno.
+// Muestra información clave del servidor para verificar el entorno.hh
 echo "<h1>✅ Despliegue Exitoso (CodeDeploy)</h1>";
 echo "<h2>Conexión PHP/Apache Funcionando</h2>";
 echo "<p>Ruta del archivo: " . __FILE__ . "</p>";
