@@ -21,7 +21,7 @@ function parse_secrets($file) {
         return ['error' => 'No se encontró el archivo de secretos o no se puede leer.'];
     }
 
-    $lines = file($file, FILE_IGNORE_EMPTY_LINES | FILE_SKIP_EMPTY_LINES);
+    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     $config = [];
     foreach ($lines as $line) {
         if (strpos(trim($line), '#') === 0) continue; // Ignorar comentarios
