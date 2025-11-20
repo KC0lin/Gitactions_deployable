@@ -65,20 +65,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      #2. 
+      # 2. Inyectar secretos de BD en un archivo temporal DENTRO DE LA CARPETA WORDPRESS
       - name: 🔒 Inject DB Credentials into Deployment Package
-       # Creamos un archivo temporal que CodeDeploy copiará a /var/www/html/
-       # Este archivo será leído y ELIMINADO en el hook AfterInstall.
+    # Creamos el archivo DENTRO de la carpeta 'wordpress/' para que CodeDeploy lo recoja.
         run: |
-          mkdir -p wordpress
-          CREDENTIALS_FILE="wordpress/.db_credentials" # <--- 🚨 RUTA CORREGIDA: DENTRO DE WORDPRESS
-          echo "DB_NAME=${{ env.DB_NAME }}" >> .db_credentials
-          echo "DB_HOST=${{ env.DB_HOST }}" >> .db_credentials
-          echo "DB_USER=${{ env.DB_USER }}" >> .db_credentials
-          echo "DB_PASS=${{ env.DB_PASS }}" >> .db_credentials
-          echo "Injected credentials into $CREDENTIALS_FILE."
+           mkdir -p wordpress # Asegura que la carpeta existe
+           CREDENTIALS_FILE="wordpress/.db_credentials" # Define la ruta DENTRO de 'wordpress/'
+           # 🚨 CORRECCIÓN CLAVE: Usamos $CREDENTIALS_FILE en cada línea de 'echo'
+           echo "DB_NAME=${{ env.DB_NAME }}" >> $CREDENTIALS_FILE
+           echo "DB_HOST=${{ env.DB_HOST }}" >> $CREDENTIALS_FILE
+           echo "DB_USER=${{ env.DB_USER }}" >> $CREDENTIALS_FILE
+           echo "DB_PASS=${{ env.DB_PASS }}" >> $CREDENTIALS_FILE
       
-      # 3. Empaquetar y Excluir (Corregido para error 127)
+           echo "Injected credentials into $CREDENTIALS_FILE."
+      
+  # 3. Empaquetar y Excluir (Corregido para error 127)
       - name: 📦 Create deployment package
         id: package
         run: |
