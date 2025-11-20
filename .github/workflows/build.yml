@@ -21,8 +21,16 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
-     
+
+      - name: 🛠️ Setup PHP
+        # Esta acción es necesaria para que el comando 'php' esté disponible
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1' # Usa la versión de PHP de tu servidor
+      
+      - name: 🔎 Check PHP Syntax Errors
+         # Busca recursivamente archivos .php y verifica su sintaxis
+        run: find . -type f -name "*.php" -print0 | xargs -0 -n1 php -l
 
   # ----------------------------------------------------
   # 2. DESPLIEGUE (Sube y llama a CodeDeploy)
