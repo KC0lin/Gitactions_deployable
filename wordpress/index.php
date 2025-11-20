@@ -19,16 +19,18 @@ function parse_secrets($file) {
     foreach ($lines as $line) {
         if (strpos(trim($line), '#') === 0) continue; // Ignorar comentarios
         list($key, $value) = explode('=', $line, 2);
-        $config[trim($key)] = trim($value);
+        // 🚨 TRIM aplicado al valor para limpiar saltos de línea y espacios
+        $config[trim($key)] = trim($value); 
     }
     return $config;
 }
 
 $db_config = parse_secrets($secrets_file);
-$host = $db_config['DB_HOST'] ?? 'HOST_NO_ENCONTRADO';
-$user = $db_config['DB_USER'] ?? 'USER_NO_ENCONTRADO';
-$pass = $db_config['DB_PASSWORD'] ?? 'PASS_NO_ENCONTRADO';
-$name = $db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO';
+// 🚨 TRIM aplicado de nuevo por seguridad
+$host = trim($db_config['DB_HOST'] ?? 'HOST_NO_ENCONTRADO');
+$user = trim($db_config['DB_USER'] ?? 'USER_NO_ENCONTRADO');
+$pass = trim($db_config['DB_PASSWORD'] ?? 'PASS_NO_ENCONTRADO');
+$name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
 
 ?>
 <!DOCTYPE html>
