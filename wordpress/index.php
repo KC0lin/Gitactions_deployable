@@ -44,7 +44,7 @@ $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Prueba de Despliegue y Conexión a BD</title>
+    <title>Prueba de Despliegue y Conexión a BD. Prueba 20-11-2025 5:05</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f4f8; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 50px auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
