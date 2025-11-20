@@ -1,50 +1,81 @@
 <?php
-// --- INICIO DE DEPURACIÓN (DEBUGGING) ---
-// Estas líneas fuerzan a PHP a mostrar cualquier error fatal en el navegador.
+// Nuevo index.php: Prueba mínima de lectura de secretos y conexión a MySQL
+
+// --- Configuración de Depuración ---
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-// --- FIN DE DEPURACIÓN (DEBUGGING) ---
+// ---
 
-// ----------------------------------------------------
-// Archivo de Prueba de Conexión a la Base de Datos
-// (Debe ser incluido en la carpeta 'wordpress/' del repositorio)
-// ----------------------------------------------------
-
-// Ruta del archivo de secretos generado en el hook after_install.sh
 $secrets_file = '/tmp/db_secrets.txt';
 $db_config = [];
+$port = 3306; // Puerto de MySQL por defecto
 
-// Función para parsear el archivo de secretos
-function parse_secrets($file) {
+// 1. Función para parsear el archivo de secretos
+function parse_secrets_simple($file) {
     if (!file_exists($file) || !is_readable($file)) {
-        return ['error' => 'No se encontró el archivo de secretos o no se puede leer.'];
+        // Devuelve un array vacío o un error si el archivo no existe/es ilegible
+        return ['error' => 'Archivo de secretos no encontrado o ilegible: ' . $file];
     }
 
     $lines = file($file, FILE_IGNORE_EMPTY_LINES | FILE_SKIP_EMPTY_LINES);
     $config = [];
     foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue; // Ignorar comentarios
+        if (strpos(trim($line), '#') === 0) continue; 
         list($key, $value) = explode('=', $line, 2);
-        // 🚨 TRIM aplicado al valor para limpiar saltos de línea y espacios
         $config[trim($key)] = trim($value); 
     }
     return $config;
 }
 
-$db_config = parse_secrets($secrets_file);
-// 🚨 TRIM aplicado de nuevo por seguridad
-$host = trim($db_config['DB_HOST'] ?? 'HOST_NO_ENCONTRADO');
-$user = trim($db_config['DB_USER'] ?? 'USER_NO_ENCONTRADO');
-$pass = trim($db_config['DB_PASS'] ?? 'PASS_NO_ENCONTRADO');
-$name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
+$db_config = parse_secrets_simple($secrets_file);
 
+// 2. Asignar variables, usando valores seguros si falla la lectura
+if (isset($db_config['error'])) {
+    $status_title = "❌ ERROR EN LA LECTURA DE SECRETOS";
+    $status_message = $db_config['error'];
+    $is_connected = false;
+    
+    // Asignar placeholders para el reporte
+    $host = 'N/A';
+    $user = 'N/A';
+    $name = 'N/A';
+
+} else {
+    // Credenciales cargadas exitosamente
+    $host = trim($db_config['DB_HOST']);
+    $user = trim($db_config['DB_USER']);
+    $pass = trim($db_config['DB_PASS']);
+    $name = trim($db_config['DB_NAME']);
+    $is_connected = false;
+
+    // 3. Intentar la Conexión a MySQL
+    try {
+        // 🚨 Conexión explícita incluyendo el puerto 3306
+        $mysqli = new mysqli($host, $user, $pass, $name, $port);
+
+        if ($mysqli->connect_errno) {
+            $status_title = "❌ CONEXIÓN A BD FALLIDA";
+            $status_message = "Error de MySQL: " . htmlspecialchars($mysqli->connect_error) . 
+                              "<br><strong>Causa probable:</strong> Credenciales incorrectas o problema de Security Groups/Red.";
+        } else {
+            $status_title = "✅ CONEXIÓN A BD EXITOSA";
+            $status_message = "Conexión establecida a la base de datos <code>" . htmlspecialchars($name) . "</code> en el host <code>" . htmlspecialchars($host) . "</code>. Versión: " . $mysqli->server_info;
+            $mysqli->close();
+            $is_connected = true;
+        }
+    } catch (Throwable $e) {
+        // Capturar cualquier excepción de bajo nivel, como la del socket (aunque ya debería estar corregida)
+        $status_title = "❌ ERROR FATAL DE CONEXIÓN";
+        $status_message = "Excepción de PHP: " . htmlspecialchars($e->getMessage());
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Prueba de Despliegue y Conexión a BD</title>
+    <title>Prueba de Despliegue y Conexión a BD - Mínimo</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f4f8; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 50px auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
@@ -59,9 +90,9 @@ $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
 </head>
 <body>
     <div class="container">
-        <h1>Estado del Despliegue CI/CD</h1>
+        <h1>Estado de la Conexión de Despliegue CI/CD</h1>
         
-        <h2>1. Configuración de Base de Datos (Leída desde CodeDeploy)</h2>
+        <h2>1. Configuración y Estado de la BD</h2>
         <table>
             <tr><th>Variable</th><th>Valor</th></tr>
             <tr><td>DB_HOST</td><td><?php echo htmlspecialchars($host); ?></td></tr>
@@ -69,33 +100,15 @@ $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
             <tr><td>DB_NAME</td><td><?php echo htmlspecialchars($name); ?></td></tr>
             <tr><td>Ubicación Secreta</td><td><?php echo htmlspecialchars($secrets_file); ?></td></tr>
         </table>
+        
+        <div class="status <?php echo $is_connected ? 'success' : 'error'; ?>">
+            <h3><?php echo $status_title; ?></h3>
+            <p><?php echo $status_message; ?></p>
+        </div>
 
-        <h2>2. Prueba de Conexión a MySQL</h2>
-
-        <?php
-        // 🚨 CORRECCIÓN: Usar la existencia de la clave 'error' para detener la conexión
-        if (isset($db_config['error'])) {
-            echo '<div class="status error">❌ ERROR: No se pudieron cargar las credenciales.</div>';
-            echo '<p>' . htmlspecialchars($db_config['error']) . '</p>';
-        } else {
-            // Intentar la conexión SÓLO si las credenciales se cargaron.
-            // Utilizamos los valores trim() para la conexión
-            $mysqli = new mysqli($host, $user, $pass, $name);
-
-            if ($mysqli->connect_errno) {
-                echo '<div class="status error">❌ CONEXIÓN FALLIDA</div>';
-                echo '<p>Error de MySQL: ' . $mysqli->connect_error . '</p>';
-                echo '<p><strong>Posible causa:</strong> Credenciales incorrectas, el host de BD es inaccesible desde esta instancia, o los Security Groups están bloqueando el tráfico.</p>';
-            } else {
-                echo '<div class="status success">✅ CONEXIÓN EXITOSA</div>';
-                echo '<p>Conexión establecida a la base de datos <code>' . htmlspecialchars($name) . '</code> en el host <code>' . htmlspecialchars($host) . '</code>.</p>';
-                echo '<p>Versión de MySQL: ' . $mysqli->server_info . '</p>';
-                $mysqli->close();
-            }
-        }
-        ?>
         <p style="margin-top: 30px; font-size: 0.8em; color: #777;">
-            Para un despliegue completo de WordPress, asegúrate de que tu `wp-config.php` también lea estas variables o utiliza un método de configuración más robusto.
+            Si el estado muestra **"ERROR EN LA LECTURA DE SECRETOS"**, revise los permisos del archivo `/tmp/db_secrets.txt`.
+            Si el estado muestra **"CONEXIÓN A BD FALLIDA"**, revise los Security Groups de la EC2/RDS.
         </p>
     </div>
 </body>
