@@ -12,7 +12,7 @@ error_reporting(E_ALL);
 // ----------------------------------------------------
 
 // Ruta del archivo de secretos generado en el hook after_install.sh
-$secrets_file = '/tmp/db_secrets.txt';
+$secrets_file = '/var/www/db_config/db_secrets.txt';
 $db_config = [];
 
 // Función para parsear el archivo de secretos
