@@ -10,20 +10,29 @@ echo "AfterInstall iniciado: Configurando permisos y credenciales."
 
 # 1. Cargar las credenciales inyectadas por el CI/CD
 echo "Cargando credenciales inyectadas desde el CI/CD..."
+# Verifica la existencia y si es legible por el usuario que ejecuta el script (root/ec2-user)
 if [ -f "$TEMP_SECRETS_FILE" ]; then
-    # El archivo .db_credentials contiene las variables de ambiente del DB.
-    # Usamos 'source' para cargarlas en el entorno de este script.
-    source "$TEMP_SECRETS_FILE"
     
-    # Aseguramos el archivo final para index.php y wp-config.php
-    # Lo movemos a /tmp (fuera de la webroot) y le damos permisos de lectura al usuario web
+    # 1a. Mover y asegurar el archivo de secretos
     echo "Asegurando y moviendo credenciales a $FINAL_SECRETS_FILE..."
+    # Mover el archivo fuera de la webroot y a la ubicación final
     sudo mv "$TEMP_SECRETS_FILE" "$FINAL_SECRETS_FILE"
-    sudo chown apache:apache "$FINAL_SECRETS_FILE"
-    sudo chmod 600 "$FINAL_SECRETS_FILE"
     
+    # Establecer la propiedad al usuario web (apache)
+    sudo chown $WEB_USER:$WEB_GROUP "$FINAL_SECRETS_FILE"
+    
+    # Establecer permisos: 600 (solo el propietario - apache - puede leer/escribir)
+    # Esto es crucial para que el PHP (que se ejecuta como apache) pueda leerlo.
+    sudo chmod 600 "$FINAL_SECRETS_FILE"
+
+    echo "Credenciales movidas y aseguradas."
+
+    # 1b. Cargar las variables para usarlas con sed
+    # Usamos 'source' para cargar las variables del archivo ya movido.
+    # El script after_install.sh se ejecuta como 'root', así que la lectura funciona.
+    source "$FINAL_SECRETS_FILE"
+
     # 2. Configuración de wp-config.php (SI EXISTE)
-    # Aquí puedes usar 'sed' para actualizar wp-config.php con las variables cargadas
     # Se asume que el archivo a modificar se llama wp-config.php y se encuentra en /var/www/html/wordpress/
     WP_CONFIG_PATH="$APP_DIR/wordpress/wp-config.php" 
     
@@ -39,8 +48,8 @@ if [ -f "$TEMP_SECRETS_FILE" ]; then
         echo "Advertencia: wp-config.php no encontrado en $WP_CONFIG_PATH. No se actualizó."
     fi
 else
-    echo "ERROR: Archivo de credenciales inyectado (.db_credentials) no encontrado."
-    # Si este archivo falta, la conexión fallará.
+    echo "ERROR: Archivo de credenciales inyectado (.db_credentials) no encontrado en $TEMP_SECRETS_FILE."
+    # Aquí podríamos fallar el despliegue si queremos forzar que las credenciales existan.
 fi
 
 # 3. Asignar Propiedad (CRÍTICO: Esto evita el 403)
