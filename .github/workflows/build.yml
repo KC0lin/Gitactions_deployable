@@ -50,7 +50,7 @@ jobs:
       DB_NAME: ${{ github.ref_name == 'staging' && secrets.DB_STAG_NAME || secrets.DB_PROD_NAME }}
       DB_HOST: ${{ github.ref_name == 'staging' && secrets.DB_STAG_HOST || secrets.DB_PROD_HOST }}
       DB_USER: ${{ github.ref_name == 'staging' && secrets.DB_STAG_USER || secrets.DB_PROD_USER }}
-      DB_PASS: ${{ github.ref_name == 'staging' && secrets.DB_STAG_PASS || secrets.DB_PROD_PASS }}
+      DB_PASSWORD: ${{ github.ref_name == 'staging' && secrets.DB_STAG_PASS || secrets.DB_PROD_PASS }}
     
     
     steps:
