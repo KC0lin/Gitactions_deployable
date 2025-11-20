@@ -36,7 +36,7 @@ $db_config = parse_secrets($secrets_file);
 // 🚨 TRIM aplicado de nuevo por seguridad
 $host = trim($db_config['DB_HOST'] ?? 'HOST_NO_ENCONTRADO');
 $user = trim($db_config['DB_USER'] ?? 'USER_NO_ENCONTRADO');
-$pass = trim($db_config['DB_PASSWORD'] ?? 'PASS_NO_ENCONTRADO');
+$pass = trim($db_config['DB_PASS'] ?? 'PASS_NO_ENCONTRADO');
 $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
 
 ?>
