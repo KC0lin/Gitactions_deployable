@@ -8,6 +8,11 @@ FINAL_SECRETS_FILE="/tmp/db_secrets.txt"     # El archivo que lee index.php/wp-c
 
 echo "AfterInstall iniciado: Configurando permisos y credenciales."
 
+# --- DEBUGGING: Listar contenido de la carpeta de despliegue para verificar el archivo ---
+echo "--- DEBUG: Contenido de $APP_DIR antes de la configuración ---"
+ls -la $APP_DIR
+echo "---------------------------------------------------------"
+
 # 1. Cargar las credenciales inyectadas por el CI/CD
 echo "Cargando credenciales inyectadas desde el CI/CD..."
 # Verifica la existencia y si es legible por el usuario que ejecuta el script (root/ec2-user)
@@ -21,11 +26,8 @@ if [ -f "$TEMP_SECRETS_FILE" ]; then
     # Establecer la propiedad al usuario web (apache)
     sudo chown $WEB_USER:$WEB_GROUP "$FINAL_SECRETS_FILE"
     
-    # Establecer permisos: 600 (solo el propietario - apache - puede leer/escribir)
-    # Esto es crucial para que el PHP (que se ejecuta como apache) pueda leerlo.
-    sudo chmod 600 "$FINAL_SECRETS_FILE"
-
-    echo "Credenciales movidas y aseguradas."
+    # 🚨 CORRECCIÓN FINAL: Cambiar a 644 para forzar la lectura por PHP (Others R)
+    sudo chmod 644 "$FINAL_SECRETS_FILE"
 
     # 1b. Cargar las variables para usarlas con sed
     # Usamos 'source' para cargar las variables del archivo ya movido.
