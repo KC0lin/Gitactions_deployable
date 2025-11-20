@@ -71,11 +71,12 @@ jobs:
        # Este archivo será leído y ELIMINADO en el hook AfterInstall.
         run: |
           mkdir -p wordpress
+          CREDENTIALS_FILE="wordpress/.db_credentials" # <--- 🚨 RUTA CORREGIDA: DENTRO DE WORDPRESS
           echo "DB_NAME=${{ env.DB_NAME }}" >> .db_credentials
           echo "DB_HOST=${{ env.DB_HOST }}" >> .db_credentials
           echo "DB_USER=${{ env.DB_USER }}" >> .db_credentials
           echo "DB_PASS=${{ env.DB_PASS }}" >> .db_credentials
-          echo "Injected credentials into wordpress/.db_credentials."
+          echo "Injected credentials into $CREDENTIALS_FILE."
       
       # 3. Empaquetar y Excluir (Corregido para error 127)
       - name: 📦 Create deployment package
