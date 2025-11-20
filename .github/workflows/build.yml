@@ -70,11 +70,12 @@ jobs:
        # Creamos un archivo temporal que CodeDeploy copiará a /var/www/html/
        # Este archivo será leído y ELIMINADO en el hook AfterInstall.
         run: |
+          mkdir -p wordpress
           echo "DB_NAME=${{ env.DB_NAME }}" >> .db_credentials
           echo "DB_HOST=${{ env.DB_HOST }}" >> .db_credentials
           echo "DB_USER=${{ env.DB_USER }}" >> .db_credentials
           echo "DB_PASS=${{ env.DB_PASS }}" >> .db_credentials
-          echo "Injected credentials for ${{ github.ref_name }}."
+          echo "Injected credentials into wordpress/.db_credentials."
       
       # 3. Empaquetar y Excluir (Corregido para error 127)
       - name: 📦 Create deployment package
