@@ -93,6 +93,25 @@ $name = trim($db_config['DB_NAME'] ?? 'NAME_NO_ENCONTRADO');
             }
         }
         ?>
+        <div class="image-display">
+            <h2>3. Imagen de Prueba Subida</h2>
+            <?php
+            // La ruta relativa se calcula desde el archivo index.php
+            $image_path = 'wp-content/themes/twentytwentyfive/foto_pexels.jpeg';
+            $full_server_path = '/var/www/html/' . $image_path;
+
+            if (file_exists($full_server_path)) {
+                echo '<p class="status success">✅ Archivo encontrado en el servidor.</p>';
+                // La etiqueta img usa la ruta relativa para que el navegador la encuentre
+                echo '<img src="' . htmlspecialchars($image_path) . '" alt="Imagen de prueba">';
+            } else {
+                echo '<p class="status error">❌ Archivo NO encontrado en: <code>' . htmlspecialchars($full_server_path) . '</code></p>';
+                // Esto podría indicar un problema en la ruta o permisos.
+            }
+            ?>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 0.8em; color: #777;">
         <p style="margin-top: 30px; font-size: 0.8em; color: #777;">
             Para un despliegue completo de WordPress, asegúrate de que tu `wp-config.php` también lea estas variables o utiliza un método de configuración más robusto.
         </p>
