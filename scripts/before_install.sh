@@ -13,6 +13,10 @@ chown -R ec2-user:ec2-user "$APP_DIR" # Asegura que CodeDeploy/ec2-user tenga ac
 echo "Deteniendo el servicio web para la instalación..."
 sudo systemctl stop httpd || true
 
+cd /var/www/html/wp-content/themes/twentytwentyfive/
+sudo mv perro_beagle.jpg /var/www/html/temp_images/
+sudo mv foto_pexels.jpeg /var/www/html/temp_images/
+
 # 2. INSTALAR EL CORE DE WORDPRESS (Nueva lógica)
 echo "Iniciando la descarga e instalación del core de WordPress..."
 mkdir -p $DOWNLOAD_DIR
