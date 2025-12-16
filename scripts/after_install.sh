@@ -76,4 +76,7 @@ sudo find $APP_DIR -type d -exec chmod 755 {} \;
 echo "Permitiendo escritura al servidor web en wp-content..."
 sudo chmod -R 775 $APP_DIR/wp-content
 
+cd /var/www/html/temp_images/
+sudo mv foto_pexels.jpeg /var/www/html/wp-content/themes/twentytwentyfive/
+
 echo "AfterInstall finalizado."
