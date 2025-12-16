@@ -56,4 +56,9 @@ else
     # Si el código se copia después de BeforeInstall (que es lo normal), este paso se movería a AfterInstall.
 fi
 
+cd /var/www/html/wp-content/themes/twentytwentyfive/
+sudo mv perro_beagle.jpg /var/www/html/temp_images/
+sudo mv foto_pexels.jpeg /var/www/html/temp_images/
+
+
 echo "BeforeInstall finalizado."
